@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { Menu, X, LogOut, Settings, Home, Users, BookOpen, MessageSquare, UserCircle } from 'lucide-react'
+import { Menu, X, LogOut, Settings, Home, Users, BookOpen, MessageSquare, UserCircle, Shield } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -31,6 +31,10 @@ export default function DashboardLayout({
     { icon: BookOpen, label: 'Ressources', href: '/dashboard/resources' },
     { icon: MessageSquare, label: 'Discussions', href: '/dashboard/discussions' },
   ]
+
+  const visibleNavItems = user?.role === 'admin'
+    ? [...navItems, { icon: Shield, label: 'Administration', href: '/admin' }]
+    : navItems
 
   useEffect(() => {
     const getProfile = async () => {
@@ -77,12 +81,31 @@ export default function DashboardLayout({
 
   return (
     <div className="flex h-screen bg-background">
+      {sidebarOpen && (
+        <button
+          type="button"
+          aria-label="Fermer le menu"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 h-full w-64 bg-sidebar border-r border-sidebar-border z-40 transition-transform duration-300 md:relative md:translate-x-0 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed left-0 top-0 z-50 h-full w-[min(22rem,88vw)] bg-sidebar border-r border-sidebar-border shadow-2xl transform transition-transform duration-300 ease-out md:sticky md:w-64 md:shrink-0 md:shadow-none ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
+        {/* Close button for mobile */}
+        <div className="md:hidden flex items-center justify-end p-3">
+          <button
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Fermer le menu"
+            className="p-2 rounded-md hover:bg-muted transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
         <div className="p-6 border-b border-sidebar-border">
           <Link href="/" className="text-2xl font-bold text-sidebar-foreground">
             CVY
@@ -90,12 +113,13 @@ export default function DashboardLayout({
         </div>
 
         <nav className="p-4 space-y-2">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const Icon = item.icon
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => setSidebarOpen(false)}
                 className="flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
               >
                 <Icon className="w-5 h-5" />
@@ -103,18 +127,19 @@ export default function DashboardLayout({
               </Link>
             )
           })}
+
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-sidebar-border space-y-2">
-          <Link href="/dashboard/settings">
-            <Button variant="ghost" className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent">
+          <Link href="/dashboard/settings" onClick={() => setSidebarOpen(false)}>
+            <Button variant="ghost" className="w-full justify-start text-sidebar-foreground hover:bg-red-500/10 hover:text-red-600 transition-colors">
               <Settings className="w-4 h-4 mr-2" />
               Parametres
             </Button>
           </Link>
           <Button 
             variant="ghost" 
-            className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent"
+            className="w-full justify-start text-sidebar-foreground hover:bg-red-500/10 hover:text-red-600 transition-colors"
             onClick={handleLogout}
           >
             <LogOut className="w-4 h-4 mr-2" />
@@ -123,16 +148,8 @@ export default function DashboardLayout({
         </div>
       </aside>
 
-      {/* Overlay for mobile */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-30 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
         {/* Top Bar */}
         <header className="bg-card border-b border-border sticky top-0 z-20">
           <div className="px-4 py-4 flex items-center justify-between">

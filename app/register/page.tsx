@@ -18,6 +18,7 @@ export default function RegisterPage() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [success, setSuccess] = useState(false)
   const router = useRouter()
 
@@ -25,16 +26,34 @@ export default function RegisterPage() {
     e.preventDefault()
     setLoading(true)
     setError(null)
+    setFieldErrors({})
 
     // Validation
+    if (!formData.name.trim()) {
+      setFieldErrors({ name: 'Le nom est requis' })
+      setError('Veuillez corriger les informations du formulaire')
+      setLoading(false)
+      return
+    }
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailPattern.test(formData.email)) {
+      setFieldErrors({ email: 'Adresse email invalide' })
+      setError('Veuillez corriger les informations du formulaire')
+      setLoading(false)
+      return
+    }
+
     if (formData.password !== formData.confirmPassword) {
-      setError('Les mots de passe ne correspondent pas')
+      setFieldErrors({ password: 'Les mots de passe ne correspondent pas', confirmPassword: 'Les mots de passe ne correspondent pas' })
+      setError('Veuillez corriger les informations du formulaire')
       setLoading(false)
       return
     }
 
     if (formData.password.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caracteres')
+      setFieldErrors({ password: 'Le mot de passe doit contenir au moins 6 caractères' })
+      setError('Veuillez corriger les informations du formulaire')
       setLoading(false)
       return
     }
@@ -53,6 +72,7 @@ export default function RegisterPage() {
       const data = await response.json()
 
       if (!response.ok) {
+        setFieldErrors(data.fieldErrors || {})
         setError(data.error || 'Erreur lors de l\'inscription')
         setLoading(false)
         return
@@ -130,8 +150,15 @@ export default function RegisterPage() {
                   placeholder="Jean Dupont"
                   value={formData.name}
                   onChange={handleChange}
+                  aria-invalid={!!fieldErrors.name}
+                  aria-describedby={fieldErrors.name ? 'name-error' : undefined}
                   required
                 />
+                {fieldErrors.name && (
+                  <p id="name-error" className="text-xs text-destructive">
+                    {fieldErrors.name}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -145,8 +172,15 @@ export default function RegisterPage() {
                   placeholder="vous@exemple.com"
                   value={formData.email}
                   onChange={handleChange}
+                  aria-invalid={!!fieldErrors.email}
+                  aria-describedby={fieldErrors.email ? 'email-error' : undefined}
                   required
                 />
+                {fieldErrors.email && (
+                  <p id="email-error" className="text-xs text-destructive">
+                    {fieldErrors.email}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -161,6 +195,8 @@ export default function RegisterPage() {
                     placeholder="••••••••"
                     value={formData.password}
                     onChange={handleChange}
+                    aria-invalid={!!fieldErrors.password}
+                    aria-describedby={fieldErrors.password ? 'password-error' : undefined}
                     required
                     minLength={6}
                   />
@@ -176,7 +212,12 @@ export default function RegisterPage() {
                     )}
                   </button>
                 </div>
-                <p className="text-xs text-muted-foreground">Minimum 6 caracteres</p>
+                <p className="text-xs text-muted-foreground">Minimum 6 caractères</p>
+                {fieldErrors.password && (
+                  <p id="password-error" className="text-xs text-destructive">
+                    {fieldErrors.password}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -190,8 +231,15 @@ export default function RegisterPage() {
                   placeholder="••••••••"
                   value={formData.confirmPassword}
                   onChange={handleChange}
+                  aria-invalid={!!fieldErrors.confirmPassword}
+                  aria-describedby={fieldErrors.confirmPassword ? 'confirmPassword-error' : undefined}
                   required
                 />
+                {fieldErrors.confirmPassword && (
+                  <p id="confirmPassword-error" className="text-xs text-destructive">
+                    {fieldErrors.confirmPassword}
+                  </p>
+                )}
               </div>
 
               <label className="flex items-start gap-2 cursor-pointer">

@@ -22,6 +22,10 @@ const eventSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    time: {
+      type: String,
+      default: '',
+    },
     organizer_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -35,7 +39,8 @@ const eventSchema = new mongoose.Schema(
     ],
     category: {
       type: String,
-      default: 'general',
+      enum: ['cours', 'formation', 'sport', 'detente'],
+      default: 'cours',
     },
     max_attendees: {
       type: Number,

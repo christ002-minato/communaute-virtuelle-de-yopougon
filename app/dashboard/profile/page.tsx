@@ -1,5 +1,6 @@
 ﻿'use client'
 
+import Link from 'next/link'
 import { useState, useEffect, type ChangeEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -113,6 +114,14 @@ export default function ProfilePage() {
     }
   }
 
+  const getInitials = (name: string) => {
+    if (!name) return '?'
+    const parts = name.trim().split(' ').filter(Boolean)
+    if (parts.length === 0) return '?'
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
+  }
+
   const formatDate = (dateStr: string) => {
     if (!dateStr) return 'Inconnu'
     const date = new Date(dateStr)
@@ -138,13 +147,22 @@ export default function ProfilePage() {
           <h2 className='text-2xl sm:text-3xl font-bold text-foreground'>Mon Profil</h2>
           <p className='text-muted-foreground'>Consultez et modifiez vos informations personnelles</p>
         </div>
-        <Button
-          type='button'
-          onClick={() => setIsEditing(prev => !prev)}
-          variant={isEditing ? 'outline' : 'default'}
-        >
-          {isEditing ? 'Annuler' : 'Modifier le profil'}
-        </Button>
+        <div className='flex flex-wrap gap-3 items-center'>
+          {profile?.role === 'admin' && (
+            <Link href='/admin'>
+              <Button className='bg-orange-500 text-white hover:bg-orange-600 shadow-lg shadow-orange-600/20'>
+                Accéder au tableau admin
+              </Button>
+            </Link>
+          )}
+          <Button
+            type='button'
+            onClick={() => setIsEditing(prev => !prev)}
+            variant={isEditing ? 'outline' : 'default'}
+          >
+            {isEditing ? 'Annuler' : 'Modifier le profil'}
+          </Button>
+        </div>
       </div>
 
       {saved && (
@@ -182,7 +200,7 @@ export default function ProfilePage() {
                   />
                 ) : (
                   <div className='flex h-32 w-32 items-center justify-center bg-primary/10 text-4xl font-bold text-primary'>
-                    {profile?.name?.charAt(0) ?? '?'}
+                    {getInitials(profile?.name ?? formData.name)}
                   </div>
                 )}
               </div>

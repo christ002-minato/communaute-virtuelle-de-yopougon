@@ -8,6 +8,8 @@ if (!MONGODB_URI) {
   );
 }
 
+const mongoUri = MONGODB_URI;
+
 interface CachedConnection {
   conn: typeof mongoose | null;
   promise: Promise<typeof mongoose> | null;
@@ -36,7 +38,7 @@ async function connectDB() {
     };
 
     cached.promise = mongoose
-      .connect(MONGODB_URI, opts)
+      .connect(mongoUri, opts)
       .then((mongoose) => {
         return mongoose;
       });

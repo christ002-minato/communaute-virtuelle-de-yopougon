@@ -53,6 +53,15 @@ const resourceSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    status: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'approved',
+    },
+    report_count: {
+      type: Number,
+      default: 0,
+    },
     created_at: {
       type: Date,
       default: Date.now,

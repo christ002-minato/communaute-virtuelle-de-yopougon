@@ -1,32 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { EventCalendar, type CalendarEvent } from '@/components/event-calendar'
-import { Plus, Pencil, Trash2, Calendar, MapPin, Clock, X } from 'lucide-react'
-
-const initialEvents: CalendarEvent[] = [
-  { id: '1', title: 'Cours Python', date: '2026-03-25', time: '14:00 - 16:00', location: 'Centre CVY, Yopougon Maroc', type: 'cours', description: 'Introduction aux bases de Python' },
-  { id: '2', title: 'Atelier CV', date: '2026-03-26', time: '10:00 - 12:00', location: 'Salle 2, Complexe Yopougon', type: 'formation', description: 'Comment rédiger un CV professionnel' },
-  { id: '3', title: 'Maracana', date: '2026-03-28', time: '15:00 - 18:00', location: 'Complexe Sportif Yopougon', type: 'sport', description: 'Tournoi de football inter-quartiers' },
-  { id: '4', title: 'Sortie Plage', date: '2026-03-29', time: '08:00 - 18:00', location: 'Grand-Bassam', type: 'detente', description: 'Journée détente à la plage' },
-  { id: '5', title: 'Cours Réseaux', date: '2026-03-30', time: '14:00 - 16:00', location: 'Centre CVY, Yopougon Maroc', type: 'cours' },
-  { id: '6', title: 'Initiation IA', date: '2026-04-02', time: '10:00 - 13:00', location: 'Salle Informatique, Yopougon', type: 'formation' },
-]
+import { Plus, Pencil, Trash2, Calendar, MapPin, Clock, X, RefreshCw } from 'lucide-react'
 
 const eventTypeOptions = [
   { value: 'cours', label: 'Cours de soutien', color: 'bg-blue-500' },
-  { value: 'formation', label: 'Formation spéciale', color: 'bg-green-600' },
-  { value: 'sport', label: 'Journée sportive', color: 'bg-red-500' },
-  { value: 'detente', label: 'Sortie détente', color: 'bg-yellow-500' },
+  { value: 'formation', label: 'Formation speciale', color: 'bg-green-600' },
+  { value: 'sport', label: 'Journee sportive', color: 'bg-red-500' },
+  { value: 'detente', label: 'Sortie detente', color: 'bg-yellow-500' },
 ]
 
 export default function AdminCalendarPage() {
-  const [events, setEvents] = useState<CalendarEvent[]>(initialEvents)
+  const [events, setEvents] = useState<CalendarEvent[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null)
   const [formData, setFormData] = useState({
@@ -37,6 +31,26 @@ export default function AdminCalendarPage() {
     type: 'cours' as CalendarEvent['type'],
     description: '',
   })
+
+  async function fetchEvents() {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/events?admin=true&limit=200', { cache: 'no-store' })
+      if (!response.ok) throw new Error('Impossible de charger les evenements.')
+      const payload = await response.json()
+      setEvents(payload.data || [])
+      setError(null)
+    } catch (err: any) {
+      console.error(err)
+      setError(err.message || 'Erreur')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchEvents()
+  }, [])
 
   const openModal = (event?: CalendarEvent) => {
     if (event) {
@@ -68,27 +82,45 @@ export default function AdminCalendarPage() {
     setEditingEvent(null)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (editingEvent) {
-      setEvents(events.map(ev => 
-        ev.id === editingEvent.id 
-          ? { ...ev, ...formData }
-          : ev
-      ))
-    } else {
-      const newEvent: CalendarEvent = {
-        id: Date.now().toString(),
-        ...formData,
+    try {
+      setSaving(true)
+      const response = await fetch('/api/events', {
+        method: editingEvent ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editingEvent ? { id: editingEvent.id, ...formData } : formData),
+      })
+      if (!response.ok) {
+        const payload = await response.json()
+        throw new Error(payload?.error || 'Enregistrement impossible.')
       }
-      setEvents([...events, newEvent])
+      await fetchEvents()
+      closeModal()
+    } catch (err: any) {
+      console.error(err)
+      setError(err.message || 'Erreur')
+    } finally {
+      setSaving(false)
     }
-    closeModal()
   }
 
-  const deleteEvent = (id: string) => {
-    if (confirm('Supprimer cet événement?')) {
-      setEvents(events.filter(ev => ev.id !== id))
+  const deleteEvent = async (id: string) => {
+    if (!confirm('Supprimer cet evenement?')) return
+
+    try {
+      setSaving(true)
+      const response = await fetch(`/api/events?id=${id}`, { method: 'DELETE' })
+      if (!response.ok) {
+        const payload = await response.json()
+        throw new Error(payload?.error || 'Suppression impossible.')
+      }
+      setEvents((items) => items.filter((event) => event.id !== id))
+    } catch (err: any) {
+      console.error(err)
+      setError(err.message || 'Erreur')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -100,46 +132,56 @@ export default function AdminCalendarPage() {
     return eventTypeOptions.find(opt => opt.value === type)?.label || type
   }
 
-  // Sort events by date
   const sortedEvents = [...events].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl md:text-3xl font-bold text-foreground">Gestion du Calendrier</h2>
-          <p className="text-muted-foreground">Ajoutez, modifiez ou supprimez les événements</p>
+          <p className="text-muted-foreground">Ajoutez, modifiez ou supprimez les evenements MongoDB</p>
         </div>
-        <Button onClick={() => openModal()} className="gap-2">
-          <Plus className="w-4 h-4" />
-          Nouvel événement
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={fetchEvents} disabled={loading}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Actualiser
+          </Button>
+          <Button onClick={() => openModal()} className="gap-2">
+            <Plus className="w-4 h-4" />
+            Nouvel evenement
+          </Button>
+        </div>
       </div>
 
+      {error && (
+        <Card>
+          <CardContent className="py-4">
+            <p className="text-sm text-destructive">{error}</p>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Calendar Preview */}
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Aperçu du calendrier</CardTitle>
-            <CardDescription>Visualisez les événements tels qu'ils apparaissent sur le site</CardDescription>
+            <CardTitle>Apercu du calendrier</CardTitle>
+            <CardDescription>Visualisez les evenements tels qu'ils apparaissent sur le site</CardDescription>
           </CardHeader>
           <CardContent>
-            <EventCalendar events={events} />
+            {loading ? <p className="text-sm text-muted-foreground">Chargement...</p> : <EventCalendar events={events} />}
           </CardContent>
         </Card>
 
-        {/* Events List */}
         <Card>
           <CardHeader>
-            <CardTitle>Liste des événements</CardTitle>
-            <CardDescription>{events.length} événements programmés</CardDescription>
+            <CardTitle>Liste des evenements</CardTitle>
+            <CardDescription>{events.length} evenement(s) programme(s)</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3 max-h-[500px] overflow-y-auto">
               {sortedEvents.map(event => (
-                <div 
-                  key={event.id} 
+                <div
+                  key={event.id}
                   className="p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors"
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -178,10 +220,10 @@ export default function AdminCalendarPage() {
                 </div>
               ))}
 
-              {events.length === 0 && (
+              {!loading && events.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   <Calendar className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                  <p>Aucun événement programmé</p>
+                  <p>Aucun evenement programme</p>
                 </div>
               )}
             </div>
@@ -189,15 +231,14 @@ export default function AdminCalendarPage() {
         </Card>
       </div>
 
-      {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>{editingEvent ? 'Modifier' : 'Nouvel'} événement</CardTitle>
+                <CardTitle>{editingEvent ? 'Modifier' : 'Nouvel'} evenement</CardTitle>
                 <CardDescription>
-                  {editingEvent ? 'Modifiez les détails de l\'événement' : 'Ajoutez un nouvel événement au calendrier'}
+                  {editingEvent ? "Modifiez les details de l'evenement" : 'Ajoutez un nouvel evenement au calendrier'}
                 </CardDescription>
               </div>
               <Button variant="ghost" size="icon" onClick={closeModal}>
@@ -207,8 +248,8 @@ export default function AdminCalendarPage() {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="title">Titre de l'événement</Label>
-                  <Input 
+                  <Label htmlFor="title">Titre de l'evenement</Label>
+                  <Input
                     id="title"
                     value={formData.title}
                     onChange={e => setFormData({ ...formData, title: e.target.value })}
@@ -220,7 +261,7 @@ export default function AdminCalendarPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="date">Date</Label>
-                    <Input 
+                    <Input
                       id="date"
                       type="date"
                       value={formData.date}
@@ -230,7 +271,7 @@ export default function AdminCalendarPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="time">Horaire</Label>
-                    <Input 
+                    <Input
                       id="time"
                       value={formData.time}
                       onChange={e => setFormData({ ...formData, time: e.target.value })}
@@ -242,7 +283,7 @@ export default function AdminCalendarPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="location">Lieu (Yopougon)</Label>
-                  <Input 
+                  <Input
                     id="location"
                     value={formData.location}
                     onChange={e => setFormData({ ...formData, location: e.target.value })}
@@ -252,7 +293,7 @@ export default function AdminCalendarPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Type d'activité</Label>
+                  <Label>Type d'activite</Label>
                   <div className="grid grid-cols-2 gap-2">
                     {eventTypeOptions.map(option => (
                       <button
@@ -260,8 +301,8 @@ export default function AdminCalendarPage() {
                         type="button"
                         onClick={() => setFormData({ ...formData, type: option.value as CalendarEvent['type'] })}
                         className={`p-3 rounded-lg border-2 text-left transition-all ${
-                          formData.type === option.value 
-                            ? 'border-primary bg-primary/10' 
+                          formData.type === option.value
+                            ? 'border-primary bg-primary/10'
                             : 'border-border hover:border-primary/50'
                         }`}
                       >
@@ -276,11 +317,11 @@ export default function AdminCalendarPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="description">Description (optionnel)</Label>
-                  <Textarea 
+                  <Textarea
                     id="description"
                     value={formData.description}
                     onChange={e => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Détails supplémentaires sur l'événement..."
+                    placeholder="Details supplementaires sur l'evenement..."
                     rows={3}
                   />
                 </div>
@@ -289,8 +330,8 @@ export default function AdminCalendarPage() {
                   <Button type="button" variant="outline" className="flex-1" onClick={closeModal}>
                     Annuler
                   </Button>
-                  <Button type="submit" className="flex-1">
-                    {editingEvent ? 'Enregistrer' : 'Créer'}
+                  <Button type="submit" className="flex-1" disabled={saving}>
+                    {editingEvent ? 'Enregistrer' : 'Creer'}
                   </Button>
                 </div>
               </form>

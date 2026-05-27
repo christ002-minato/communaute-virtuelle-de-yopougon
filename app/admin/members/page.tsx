@@ -1,26 +1,96 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Search, Trash2, Lock, Unlock } from 'lucide-react'
-import { useState } from 'react'
+
+interface MemberRow {
+  id: string
+  userId: string
+  name: string
+  email: string
+  role: string
+  status: string
+  joinDate: string
+}
 
 export default function AdminMembersPage() {
+  const [members, setMembers] = useState<MemberRow[]>([])
   const [searchQuery, setSearchQuery] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [updatingUserId, setUpdatingUserId] = useState<string | null>(null)
 
-  const members = [
-    { id: 1, name: 'Marie Diallo', email: 'marie@example.com', role: 'Modérateur', status: 'Actif', joinDate: '2024-01-15' },
-    { id: 2, name: 'Pierre Koffi', email: 'pierre@example.com', role: 'Membre', status: 'Actif', joinDate: '2024-02-01' },
-    { id: 3, name: 'Aya Kouadio', email: 'aya@example.com', role: 'Membre', status: 'Actif', joinDate: '2024-02-10' },
-    { id: 4, name: 'Sow Diané', email: 'sow@example.com', role: 'Membre', status: 'Suspendu', joinDate: '2024-01-20' },
-    { id: 5, name: 'Kofi Mensah', email: 'kofi@example.com', role: 'Modérateur', status: 'Actif', joinDate: '2023-12-05' },
-  ]
+  useEffect(() => {
+    const fetchMembers = async () => {
+      try {
+        const response = await fetch('/api/admin/members')
+        if (!response.ok) {
+          const data = await response.json().catch(() => null)
+          setError(data?.error || 'Impossible de charger la liste des membres.')
+          return
+        }
 
-  const filteredMembers = members.filter(member =>
+        const data = await response.json()
+        setMembers(data.members || [])
+      } catch (err) {
+        console.error('Members fetch failed:', err)
+        setError('Impossible de charger la liste des membres.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchMembers()
+  }, [])
+
+  const handleRoleUpdate = async (userId: string, role: string) => {
+    setUpdatingUserId(userId)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/admin/members', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, role }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null)
+        setError(data?.error || 'Impossible de modifier le rôle.')
+        return
+      }
+
+      const updatedUser = await response.json()
+      setMembers((current) =>
+        current.map((member) =>
+          member.userId === updatedUser.userId
+            ? { ...member, role: updatedUser.role }
+            : member
+        )
+      )
+    } catch (err) {
+      console.error('Role update failed:', err)
+      setError('Impossible de modifier le rôle.')
+    } finally {
+      setUpdatingUserId(null)
+    }
+  }
+
+  const filteredMembers = members.filter((member) =>
     member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     member.email.toLowerCase().includes(searchQuery.toLowerCase())
   )
+
+  if (loading) {
+    return (
+      <div className="min-h-[300px] flex items-center justify-center">
+        <p className="text-base text-muted-foreground">Chargement de la liste des membres...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -38,6 +108,12 @@ export default function AdminMembersPage() {
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
+
+      {error && (
+        <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">
+          {error}
+        </div>
+      )}
 
       <Card>
         <CardHeader>
@@ -67,10 +143,16 @@ export default function AdminMembersPage() {
                     </td>
                     <td className="py-3 px-4 hidden md:table-cell text-muted-foreground">{member.email}</td>
                     <td className="py-3 px-4">
-                      <select className="text-sm bg-muted border border-border rounded px-2 py-1">
-                        <option>Membre</option>
-                        <option selected={member.role === 'Modérateur'}>Modérateur</option>
-                        <option>Admin</option>
+                      <select
+                        className="text-sm bg-muted border border-border rounded px-2 py-1"
+                        value={member.role}
+                        disabled={updatingUserId === member.userId}
+                        onChange={(e) => handleRoleUpdate(member.userId, e.target.value)}
+                      >
+                        <option value="student">Étudiant</option>
+                        <option value="teacher">Enseignant</option>
+                        <option value="admin">Admin</option>
+                        <option value="moderator">Modérateur</option>
                       </select>
                     </td>
                     <td className="py-3 px-4 hidden lg:table-cell">

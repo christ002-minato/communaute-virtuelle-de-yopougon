@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb/client';
 import User from '@/lib/models/User';
+import Member from '@/lib/models/Member';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
@@ -25,7 +26,10 @@ export async function POST(request: NextRequest) {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return NextResponse.json(
-        { error: 'User already exists' },
+        {
+          error: 'Cet email est déjà utilisé',
+          fieldErrors: { email: 'Email déjà pris' },
+        },
         { status: 409 }
       );
     }
@@ -41,6 +45,15 @@ export async function POST(request: NextRequest) {
     });
 
     await user.save();
+
+    // Créer la fiche de membre automatiquement
+    await Member.create({
+      user_id: user._id,
+      points: 0,
+      level: 'bronze',
+      reputation: 0,
+      is_verified: false,
+    });
 
     // Créer le JWT token
     const token = jwt.sign(
@@ -72,10 +85,35 @@ export async function POST(request: NextRequest) {
     });
 
     return response;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Registration error:', error);
+
+    if (error.name === 'ValidationError' && error.errors) {
+      const fieldErrors: Record<string, string> = {}
+      for (const key of Object.keys(error.errors)) {
+        fieldErrors[key] = error.errors[key].message
+      }
+      return NextResponse.json(
+        {
+          error: 'Données invalides',
+          fieldErrors,
+        },
+        { status: 400 }
+      )
+    }
+
+    if (error.code === 11000 && error.keyValue?.email) {
+      return NextResponse.json(
+        {
+          error: 'Cet email est déjà utilisé',
+          fieldErrors: { email: 'Email déjà pris' },
+        },
+        { status: 409 }
+      )
+    }
+
     return NextResponse.json(
-      { error: 'Failed to register user' },
+      { error: 'Impossible de créer le compte' },
       { status: 500 }
     );
   }
