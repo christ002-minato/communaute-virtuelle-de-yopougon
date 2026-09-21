@@ -14,9 +14,13 @@ export async function GET(request: NextRequest) {
   try {
     await connectDB()
     const { searchParams } = new URL(request.url)
-    const admin = searchParams.get('admin') === 'true'
+    const wantsAdmin = searchParams.get('admin') === 'true'
+    const adminView = wantsAdmin && requireAdmin(request) !== null
+    if (wantsAdmin && !adminView) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
     const limit = parseInt(searchParams.get('limit') || '12', 10)
-    const data = await GalleryItem.find(admin ? {} : { is_public: true })
+    const data = await GalleryItem.find(adminView ? {} : { is_public: true })
       .sort({ activity_date: -1, createdAt: -1 })
       .limit(limit)
       .lean()

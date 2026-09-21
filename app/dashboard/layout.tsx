@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Menu, X, LogOut, Settings, Home, Users, BookOpen, MessageSquare, UserCircle, Shield } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -107,8 +108,11 @@ export default function DashboardLayout({
           </button>
         </div>
         <div className="p-6 border-b border-sidebar-border">
-          <Link href="/" className="text-2xl font-bold text-sidebar-foreground">
-            CVY
+          <Link href="/" className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full overflow-hidden">
+              <Image src="/Logo.png" alt="Logo CVY" width={40} height={40} className="h-full w-full object-contain" />
+            </div>
+            <span className="text-xl font-bold text-sidebar-foreground">CVY</span>
           </Link>
         </div>
 

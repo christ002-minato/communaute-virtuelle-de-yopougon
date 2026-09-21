@@ -35,11 +35,16 @@ export async function GET(request: NextRequest) {
     await connectDB()
 
     const url = new URL(request.url)
+    const wantsAdmin = url.searchParams.get('admin') === 'true'
+    const adminView = wantsAdmin && requireAdmin(request) !== null
+    if (wantsAdmin && !adminView) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
     const limit = parseInt(url.searchParams.get('limit') || '10', 10)
     const page = parseInt(url.searchParams.get('page') || '1', 10)
     const skip = (page - 1) * limit
 
-    const query = url.searchParams.get('admin') === 'true' ? {} : { is_public: true }
+    const query = adminView ? {} : { is_public: true }
 
     const events = await Event.find(query)
       .sort({ start_date: 1 })

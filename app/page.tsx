@@ -85,8 +85,8 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                <span className="text-primary font-bold text-lg">CVY</span>
+              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden">
+                <Image src="/Logo.png" alt="Logo CVY" width={40} height={40} className="h-full w-full object-contain" />
               </div>
               <span className="hidden md:block font-semibold">Communaute Virtuelle Yopougon</span>
             </div>
@@ -378,8 +378,8 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           <div className="grid gap-8 md:grid-cols-3">
             <div>
-              <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center mb-4">
-                <span className="text-white font-bold">CVY</span>
+              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden mb-4">
+                <Image src="/Logo.png" alt="Logo CVY" width={40} height={40} className="h-full w-full object-contain" />
               </div>
               <p className="text-sm text-background/70">
                 La Communaute Virtuelle de Yopougon - ensemble pour un avenir meilleur.

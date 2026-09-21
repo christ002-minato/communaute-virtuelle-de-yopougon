@@ -13,9 +13,13 @@ export async function GET(request: NextRequest) {
   try {
     await connectDB()
     const { searchParams } = new URL(request.url)
-    const admin = searchParams.get('admin') === 'true'
+    const wantsAdmin = searchParams.get('admin') === 'true'
+    const adminView = wantsAdmin && getUser(request)?.role === 'admin'
+    if (wantsAdmin && !adminView) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
     const limit = parseInt(searchParams.get('limit') || '50', 10)
-    const query = admin ? {} : { is_public: true, status: 'approved' }
+    const query = adminView ? {} : { is_public: true, status: 'approved' }
 
     const resources = await Resource.find(query)
       .populate('author_id', 'name avatar_url')

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
@@ -49,7 +50,9 @@ export default function LoginPage() {
     <main className="min-h-screen bg-background flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md">
         <Link href="/" className="inline-block mb-8">
-          <div className="text-2xl font-bold text-primary">CVY</div>
+          <div className="w-16 h-16 rounded-full overflow-hidden">
+            <Image src="/Logo.png" alt="Logo CVY" width={64} height={64} className="h-full w-full object-contain" />
+          </div>
         </Link>
 
         <Card>

@@ -1,7 +1,13 @@
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+export const JWT_SECRET: string = (() => {
+  const secret = process.env.JWT_SECRET
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is required.')
+  }
+  return secret
+})()
 
 export interface DecodedToken {
   userId: string;
@@ -19,7 +25,7 @@ export async function getAuthToken(): Promise<string | null> {
 
 export function verifyToken(token: string): DecodedToken | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as DecodedToken;
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as unknown as DecodedToken;
     return decoded;
   } catch (error) {
     return null;

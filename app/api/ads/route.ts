@@ -14,9 +14,13 @@ export async function GET(request: NextRequest) {
   try {
     await connectDB()
     const { searchParams } = new URL(request.url)
-    const admin = searchParams.get('admin') === 'true'
+    const wantsAdmin = searchParams.get('admin') === 'true'
+    const adminView = wantsAdmin && requireAdmin(request) !== null
+    if (wantsAdmin && !adminView) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
     const placement = searchParams.get('placement')
-    const query: Record<string, unknown> = admin ? {} : { is_active: true }
+    const query: Record<string, unknown> = adminView ? {} : { is_active: true }
     if (placement) query.placement = placement
 
     const data = await Advertisement.find(query)

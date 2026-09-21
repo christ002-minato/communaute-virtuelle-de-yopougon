@@ -8,9 +8,23 @@ import { verifyToken } from '@/lib/auth'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024
 
+const ALLOWED_EXTENSIONS: Record<string, string[]> = {
+  'image/png': ['.png'],
+  'image/jpeg': ['.jpg', '.jpeg'],
+  'image/webp': ['.webp'],
+  'image/gif': ['.gif'],
+}
+
 function getExtension(fileName: string) {
   const ext = path.extname(fileName).toLowerCase().replace(/[^a-z0-9.]/g, '')
-  return ext || '.bin'
+  return ext || ''
+}
+
+function isAllowedFile(type: string, fileName: string): boolean {
+  const ext = getExtension(fileName)
+  const allowed = ALLOWED_EXTENSIONS[type]
+  if (!allowed) return false
+  return allowed.includes(ext)
 }
 
 export async function POST(request: NextRequest) {
@@ -27,8 +41,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'file is required' }, { status: 400 })
     }
 
+    if (file.size <= 0) {
+      return NextResponse.json({ error: 'Fichier vide' }, { status: 400 })
+    }
+
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json({ error: 'File is too large. Max size is 10MB.' }, { status: 400 })
+    }
+
+    if (!isAllowedFile(file.type, file.name)) {
+      return NextResponse.json(
+        { error: 'Type de fichier non autorisé. Formats acceptés: PNG, JPG, JPEG, WEBP, GIF.' },
+        { status: 400 }
+      )
     }
 
     const uploadsDir = path.join(process.cwd(), 'public', 'uploads')

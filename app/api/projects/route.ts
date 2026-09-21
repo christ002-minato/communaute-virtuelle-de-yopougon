@@ -10,13 +10,23 @@ function requireAdmin(request: NextRequest) {
   return user?.role === 'admin' ? user : null
 }
 
+async function isAdminView(request: NextRequest): Promise<boolean> {
+  const { searchParams } = new URL(request.url)
+  if (searchParams.get('admin') !== 'true') return false
+  return requireAdmin(request) !== null
+}
+
 export async function GET(request: NextRequest) {
   try {
     await connectDB()
     const { searchParams } = new URL(request.url)
-    const admin = searchParams.get('admin') === 'true'
+    const wantsAdmin = searchParams.get('admin') === 'true'
+    const adminView = await isAdminView(request)
+    if (wantsAdmin && !adminView) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
     const limit = parseInt(searchParams.get('limit') || '12', 10)
-    const data = await Project.find(admin ? {} : { is_public: true })
+    const data = await Project.find(adminView ? {} : { is_public: true })
       .sort({ createdAt: -1 })
       .limit(limit)
       .lean()
